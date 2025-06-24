@@ -70,7 +70,7 @@ Ne posez pas de questions directes sur les forces, les faiblesses, les opportuni
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=2000
+            max_tokens=10000
         )
         
         content = response['choices'][0]['message']['content']
@@ -154,7 +154,7 @@ Réponses détaillées : {detailed_qa}
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=2000,
+            max_tokens=10000,
         )
         return response['choices'][0]['message']['content']
     except Exception as e:
