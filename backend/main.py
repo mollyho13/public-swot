@@ -46,6 +46,7 @@ Given the following company details:
 """
 
     try:
+        client = openai.OpenAI(api_key)
         
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
