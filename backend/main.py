@@ -47,7 +47,7 @@ L'objectif est de préparer une analyse SWOT (Forces, Faiblesses, Opportunités,
 Voici la marche à suivre :
 1. Lire attentivement les 20 réponses du questionnaire de profilage. 
 2. Identifiez les caractéristiques clés de l'entreprise : modèle économique, stade de croissance, dynamique sectorielle, maturité numérique, exposition internationale, etc.
-3. Sur cette base, élaborez 50 à 100 questions **personnalisées** sur les axes suivants et les questions devraient augmenter en complexité:
+3. Sur cette base, élaborez au moins 50 à 100 questions **personnalisées** sur les axes suivants et les questions devraient augmenter en complexité:
     - Stratégie commerciale (par exemple, performance commerciale, taux de désabonnement, pouvoir de fixation des prix)
     - Opérations et chaîne d'approvisionnement
     - Structure financière et marges
