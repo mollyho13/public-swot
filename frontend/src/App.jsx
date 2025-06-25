@@ -151,7 +151,7 @@ const App = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-12">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-4">🚀 AI Business Analysis Platform</h1>
+          <h1 className="text-4xl font-bold mb-4"> AI SWOT Analysis Platform</h1>
           <p className="text-xl opacity-90">Génération de questionnaires personnalisés et analyses SWOT stratégiques</p>
         </div>
       </div>

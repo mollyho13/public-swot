@@ -42,12 +42,12 @@ Given the following company details:
 
 {company_description}
 
-L'objectif est de préparer une analyse SWOT (Forces, Faiblesses, Opportunités, Menaces) complète et structurée. Vos questions doivent explorer les axes stratégiques clés de l'entreprise avec précision et pertinence, en fonction de sa taille, de son secteur d'activité, de son chiffre d'affaires, de son modèle opérationnel, de sa structure clientèle et des défis déclarés.
+Créer 50 à 100 questions. L'objectif est de préparer une analyse SWOT (Forces, Faiblesses, Opportunités, Menaces) complète et structurée. Vos questions doivent explorer les axes stratégiques clés de l'entreprise avec précision et pertinence, en fonction de sa taille, de son secteur d'activité, de son chiffre d'affaires, de son modèle opérationnel, de sa structure clientèle et des défis déclarés.
 
 Voici la marche à suivre :
 1. Lire attentivement les 20 réponses du questionnaire de profilage. 
 2. Identifiez les caractéristiques clés de l'entreprise : modèle économique, stade de croissance, dynamique sectorielle, maturité numérique, exposition internationale, etc.
-3. Sur cette base, élaborez au moins 50 à 100 questions **personnalisées** sur les axes suivants et les questions devraient augmenter en complexité:
+3. Sur cette base, élaborez 50 à 100 questions **personnalisées** sur les axes suivants et les questions devraient augmenter en complexité:
     - Stratégie commerciale (par exemple, performance commerciale, taux de désabonnement, pouvoir de fixation des prix)
     - Opérations et chaîne d'approvisionnement
     - Structure financière et marges
@@ -62,15 +62,16 @@ Voici la marche à suivre :
 
 Soyez attentif au contexte : si l'entreprise externalise sa production, ne posez pas de questions sur les indicateurs clés de performance de la production interne ; s'il s'agit d'une activité B2B dans un secteur de niche, ne posez pas de questions sur l'image de marque grand public.
 Ne posez pas de questions directes sur les forces, les faiblesses, les opportunités, les menaces ou autres choses de ce genre.
+
 """
 
     try:
         # Use the older API format (more reliable for deployment)
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=2000
+            max_tokens=4000
         )
         
         content = response['choices'][0]['message']['content']
@@ -151,10 +152,10 @@ Réponses détaillées : {detailed_qa}
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=2000,
+            max_tokens=4000,
         )
         return response['choices'][0]['message']['content']
     except Exception as e:
