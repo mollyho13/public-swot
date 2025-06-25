@@ -42,7 +42,7 @@ Given the following company details:
 
 {company_description}
 
-Créer 50 à 100 questions. L'objectif est de préparer une analyse SWOT (Forces, Faiblesses, Opportunités, Menaces) complète et structurée. Vos questions doivent explorer les axes stratégiques clés de l'entreprise avec précision et pertinence, en fonction de sa taille, de son secteur d'activité, de son chiffre d'affaires, de son modèle opérationnel, de sa structure clientèle et des défis déclarés.
+**exactement cinquante (50)**. L'objectif est de préparer une analyse SWOT (Forces, Faiblesses, Opportunités, Menaces) complète et structurée. Vos questions doivent explorer les axes stratégiques clés de l'entreprise avec précision et pertinence, en fonction de sa taille, de son secteur d'activité, de son chiffre d'affaires, de son modèle opérationnel, de sa structure clientèle et des défis déclarés.
 
 Voici la marche à suivre :
 1. Lire attentivement les 20 réponses du questionnaire de profilage. 
@@ -68,7 +68,7 @@ Ne posez pas de questions directes sur les forces, les faiblesses, les opportuni
     try:
         # Use the older API format (more reliable for deployment)
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=4000
@@ -152,7 +152,7 @@ Réponses détaillées : {detailed_qa}
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=4000,
