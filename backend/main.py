@@ -1,4 +1,4 @@
-# main.py - Fixed OpenAI API calls
+# main.py - Updated to support multiple PDFs
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -11,7 +11,7 @@ import tempfile
 import os
 import uuid
 import io
-from typing import Optional
+from typing import Optional, List
 
 app = FastAPI(title="AI Business Analysis API", version="1.0.0")
 
@@ -42,7 +42,7 @@ Given the following company details:
 
 {company_description}
 
-Créer 50 à 100 questions. L'objectif est de préparer une analyse SWOT (Forces, Faiblesses, Opportunités, Menaces) complète et structurée. Vos questions doivent explorer les axes stratégiques clés de l'entreprise avec précision et pertinence, en fonction de sa taille, de son secteur d'activité, de son chiffre d'affaires, de son modèle opérationnel, de sa structure clientèle et des défis déclarés.
+**exactement cinquante (50)**. L'objectif est de préparer une analyse SWOT (Forces, Faiblesses, Opportunités, Menaces) complète et structurée. Vos questions doivent explorer les axes stratégiques clés de l'entreprise avec précision et pertinence, en fonction de sa taille, de son secteur d'activité, de son chiffre d'affaires, de son modèle opérationnel, de sa structure clientèle et des défis déclarés.
 
 Voici la marche à suivre :
 1. Lire attentivement les 20 réponses du questionnaire de profilage. 
@@ -68,7 +68,7 @@ Ne posez pas de questions directes sur les forces, les faiblesses, les opportuni
     try:
         # Use the older API format (more reliable for deployment)
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=4000
@@ -84,18 +84,50 @@ Ne posez pas de questions directes sur les forces, les faiblesses, les opportuni
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
-def extract_qa_from_pdf(pdf_file):
-    """Extract text from PDF file"""
-    qa_text = ""
-    try:
-        with pdfplumber.open(pdf_file) as pdf:
-            for page in pdf.pages:
-                text = page.extract_text()
-                if text:
-                    qa_text += text + "\n"
-        return qa_text
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF extraction error: {str(e)}")
+def extract_qa_from_multiple_pdfs(pdf_files):
+    """Extract text from multiple PDF files and combine them"""
+    combined_qa_text = ""
+    processed_files = []
+    
+    for i, pdf_file in enumerate(pdf_files):
+        try:
+            # Save PDF temporarily for processing
+            temp_pdf_path = os.path.join(TEMP_DIR, f"temp_pdf_{i}_{uuid.uuid4()}.pdf")
+            
+            # Read the uploaded file content
+            pdf_content = pdf_file.file.read()
+            pdf_file.file.seek(0)  # Reset file pointer for potential reuse
+            
+            # Write to temporary file
+            with open(temp_pdf_path, 'wb') as f:
+                f.write(pdf_content)
+            
+            # Extract text from this PDF
+            pdf_text = ""
+            with pdfplumber.open(temp_pdf_path) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if text:
+                        pdf_text += text + "\n"
+            
+            if pdf_text.strip():
+                combined_qa_text += f"\n=== DOCUMENT {i+1}: {pdf_file.filename} ===\n"
+                combined_qa_text += pdf_text + "\n"
+                processed_files.append(pdf_file.filename)
+            
+            # Clean up temporary file
+            if os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+                
+        except Exception as e:
+            # Log error but continue with other files
+            print(f"Error processing PDF {pdf_file.filename}: {str(e)}")
+            continue
+    
+    if not combined_qa_text.strip():
+        raise HTTPException(status_code=400, detail="No readable content found in any PDF files")
+    
+    return combined_qa_text, processed_files
 
 def generate_swot_analysis(form_data, detailed_qa, api_key):
     """Generate SWOT analysis"""
@@ -146,13 +178,13 @@ Focus sur les **avantages concurrentiels réels** :
 
 Informations entreprise : {business_info}
 
-Réponses détaillées : {detailed_qa}
+Réponses détaillées (analysées à partir de plusieurs documents) : {detailed_qa}
 
 **Analyse les interdépendances** entre les éléments et explique les mécanismes sous-jacents (pourquoi/comment) pour chaque point identifié."""
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=4000,
@@ -278,18 +310,23 @@ async def generate_questions_endpoint(
 @app.post("/api/generate-swot")
 async def generate_swot_endpoint(
     csv_file: UploadFile = File(...),
-    pdf_file: UploadFile = File(...),
+    pdf_files: List[UploadFile] = File(...),
     business_name: str = Form(...),
     api_key: str = Form(...)
 ):
-    """Generate SWOT analysis from company data and Q&A"""
+    """Generate SWOT analysis from company data and multiple Q&A PDFs"""
     try:
         # Validate file types
         if not csv_file.filename.endswith('.csv'):
             raise HTTPException(status_code=400, detail="Please upload a CSV file")
         
-        if not pdf_file.filename.endswith('.pdf'):
-            raise HTTPException(status_code=400, detail="Please upload a PDF file")
+        # Validate PDF files
+        for pdf_file in pdf_files:
+            if not pdf_file.filename.endswith('.pdf'):
+                raise HTTPException(status_code=400, detail=f"File {pdf_file.filename} is not a PDF file")
+        
+        if len(pdf_files) == 0:
+            raise HTTPException(status_code=400, detail="At least one PDF file is required")
         
         # Read CSV
         csv_content = await csv_file.read()
@@ -315,27 +352,22 @@ async def generate_swot_endpoint(
                 }
             )
         
-        # Extract PDF content
-        pdf_content = await pdf_file.read()
-        
-        # Save PDF temporarily for processing
-        temp_pdf_path = os.path.join(TEMP_DIR, f"temp_{uuid.uuid4()}.pdf")
-        with open(temp_pdf_path, 'wb') as f:
-            f.write(pdf_content)
-        
-        try:
-            detailed_qa = extract_qa_from_pdf(temp_pdf_path)
-        finally:
-            # Clean up temp file
-            if os.path.exists(temp_pdf_path):
-                os.remove(temp_pdf_path)
+        # Extract content from all PDF files
+        detailed_qa, processed_files = extract_qa_from_multiple_pdfs(pdf_files)
         
         # Generate SWOT analysis
         form_data = matches.iloc[0].to_dict()
         swot_analysis = generate_swot_analysis(form_data, detailed_qa, api_key)
         
-        # Create PDF
-        pdf = create_pdf(swot_analysis, f"Analyse SWOT - {business_name}")
+        # Create PDF with analysis info
+        analysis_header = f"ANALYSE SWOT - {business_name}\n\n"
+        analysis_header += f"Documents analysés: {', '.join(processed_files)}\n"
+        analysis_header += f"Nombre de documents PDF traités: {len(processed_files)}\n\n"
+        analysis_header += "=" * 50 + "\n\n"
+        
+        full_content = analysis_header + swot_analysis
+        
+        pdf = create_pdf(full_content, f"Analyse SWOT - {business_name}")
         
         # Save PDF temporarily
         pdf_id = str(uuid.uuid4())
@@ -346,85 +378,8 @@ async def generate_swot_endpoint(
             "success": True,
             "business_name": business_name,
             "swot_analysis": swot_analysis,
-            "pdf_id": pdf_id
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
-
-@app.post("/api/generate-swot")
-async def generate_swot_endpoint(
-    csv_file: UploadFile = File(...),
-    pdf_file: UploadFile = File(...),
-    business_name: str = Form(...),
-    api_key: str = Form(...)
-):
-    """Generate SWOT analysis from company data and Q&A"""
-    try:
-        # Validate file types
-        if not csv_file.filename.endswith('.csv'):
-            raise HTTPException(status_code=400, detail="Please upload a CSV file")
-        
-        if not pdf_file.filename.endswith('.pdf'):
-            raise HTTPException(status_code=400, detail="Please upload a PDF file")
-        
-        # Read CSV
-        csv_content = await csv_file.read()
-        df = pd.read_csv(io.BytesIO(csv_content))
-        
-        # Check if required column exists
-        if 'Business Name (pas de caractères spéciaux)' not in df.columns:
-            raise HTTPException(
-                status_code=400, 
-                detail="Column 'Business Name (pas de caractères spéciaux)' not found in CSV"
-            )
-        
-        # Find matching business
-        matches = df[df['Business Name (pas de caractères spéciaux)'].str.lower() == business_name.lower()]
-        
-        if matches.empty:
-            available_businesses = df['Business Name (pas de caractères spéciaux)'].dropna().unique()[:10]
-            raise HTTPException(
-                status_code=404, 
-                detail={
-                    "message": f"No responses found for business '{business_name}'",
-                    "available_businesses": available_businesses.tolist()
-                }
-            )
-        
-        # Extract PDF content
-        pdf_content = await pdf_file.read()
-        
-        # Save PDF temporarily for processing
-        temp_pdf_path = os.path.join(TEMP_DIR, f"temp_{uuid.uuid4()}.pdf")
-        with open(temp_pdf_path, 'wb') as f:
-            f.write(pdf_content)
-        
-        try:
-            detailed_qa = extract_qa_from_pdf(temp_pdf_path)
-        finally:
-            # Clean up temp file
-            if os.path.exists(temp_pdf_path):
-                os.remove(temp_pdf_path)
-        
-        # Generate SWOT analysis
-        form_data = matches.iloc[0].to_dict()
-        swot_analysis = generate_swot_analysis(form_data, detailed_qa, api_key)
-        
-        # Create PDF
-        pdf = create_pdf(swot_analysis, f"Analyse SWOT - {business_name}")
-        
-        # Save PDF temporarily
-        pdf_id = str(uuid.uuid4())
-        pdf_path = os.path.join(TEMP_DIR, f"{pdf_id}.pdf")
-        pdf.output(pdf_path)
-        
-        return {
-            "success": True,
-            "business_name": business_name,
-            "swot_analysis": swot_analysis,
+            "processed_files": processed_files,
+            "files_count": len(processed_files),
             "pdf_id": pdf_id
         }
         

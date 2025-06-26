@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, BarChart3, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, BarChart3, Download, Loader2, CheckCircle, AlertCircle, X } from 'lucide-react';
 
 const API_BASE_URL = 'https://public-swot.onrender.com';
 
@@ -12,7 +12,7 @@ const App = () => {
   });
   const [swotForm, setSwotForm] = useState({
     csvFile: null,
-    pdfFile: null,
+    pdfFiles: [], // Changed to array for multiple files
     businessName: '',
     apiKey: ''
   });
@@ -26,6 +26,21 @@ const App = () => {
     setter(prev => ({
       ...prev,
       [field]: file
+    }));
+  };
+
+  const handleMultiplePdfUpload = (files) => {
+    const fileArray = Array.from(files);
+    setSwotForm(prev => ({
+      ...prev,
+      pdfFiles: [...prev.pdfFiles, ...fileArray]
+    }));
+  };
+
+  const removePdfFile = (indexToRemove) => {
+    setSwotForm(prev => ({
+      ...prev,
+      pdfFiles: prev.pdfFiles.filter((_, index) => index !== indexToRemove)
     }));
   };
 
@@ -68,7 +83,12 @@ const App = () => {
 
     const formData = new FormData();
     formData.append('csv_file', swotForm.csvFile);
-    formData.append('pdf_file', swotForm.pdfFile);
+    
+    // Append multiple PDF files
+    swotForm.pdfFiles.forEach((file, index) => {
+      formData.append('pdf_files', file);
+    });
+    
     formData.append('business_name', swotForm.businessName);
     formData.append('api_key', swotForm.apiKey);
 
@@ -143,6 +163,69 @@ const App = () => {
           <p className="text-xs text-gray-500">{accept.toUpperCase()}</p>
         </div>
       </label>
+    </div>
+  );
+
+  const MultipleFileUploadBox = ({ files, onFileSelect, accept, label, icon: Icon }) => (
+    <div className="space-y-3">
+      <div className="relative">
+        <input
+          type="file"
+          accept={accept}
+          multiple
+          onChange={(e) => onFileSelect(e.target.files)}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          id={`multiple-file-${label}`}
+        />
+        <label
+          htmlFor={`multiple-file-${label}`}
+          className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+            files.length > 0
+              ? 'border-green-400 bg-green-50'
+              : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+          }`}
+        >
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <Icon className={`w-8 h-8 mb-3 ${files.length > 0 ? 'text-green-500' : 'text-gray-400'}`} />
+            <p className="mb-2 text-sm text-gray-500">
+              {files.length > 0 ? (
+                <span className="font-medium text-green-600">
+                  {files.length} file{files.length > 1 ? 's' : ''} selected
+                </span>
+              ) : (
+                <>
+                  <span className="font-semibold">Click to upload</span> {label}
+                </>
+              )}
+            </p>
+            <p className="text-xs text-gray-500">{accept.toUpperCase()} • Multiple files supported</p>
+          </div>
+        </label>
+      </div>
+      
+      {/* Display selected files */}
+      {files.length > 0 && (
+        <div className="space-y-2 max-h-32 overflow-y-auto">
+          {files.map((file, index) => (
+            <div key={index} className="flex items-center justify-between bg-blue-50 p-2 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <FileText className="w-4 h-4 text-blue-500" />
+                <span className="text-sm text-blue-700 truncate">{file.name}</span>
+                <span className="text-xs text-blue-500">
+                  ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => removePdfFile(index)}
+                className="text-red-500 hover:text-red-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -307,7 +390,7 @@ const App = () => {
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">📊 Analyse SWOT</h2>
-              <p className="text-gray-600">Générez une analyse SWOT stratégique complète à partir des réponses détaillées de votre entreprise.</p>
+              <p className="text-gray-600">Générez une analyse SWOT stratégique complète à partir des réponses détaillées de votre entreprise. Vous pouvez uploader plusieurs fichiers PDF.</p>
             </div>
 
             <form onSubmit={generateSwot} className="space-y-6">
@@ -328,13 +411,13 @@ const App = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Fichier PDF des Q&A détaillées
+                      Fichiers PDF des Q&A détaillées (Multiples fichiers supportés)
                     </label>
-                    <FileUploadBox
-                      file={swotForm.pdfFile}
-                      onFileSelect={(file) => handleFileUpload(file, swotForm, 'pdfFile', setSwotForm)}
+                    <MultipleFileUploadBox
+                      files={swotForm.pdfFiles}
+                      onFileSelect={handleMultiplePdfUpload}
                       accept=".pdf"
-                      label="your PDF file"
+                      label="your PDF files"
                       icon={FileText}
                     />
                   </div>
@@ -373,18 +456,24 @@ const App = () => {
                     <h4 className="font-medium text-blue-800 mb-2">Instructions:</h4>
                     <ul className="text-sm text-blue-700 space-y-1">
                       <li>1. Uploadez votre fichier CSV de profilage</li>
-                      <li>2. Uploadez le PDF avec les Q&A détaillées</li>
+                      <li>2. Uploadez un ou plusieurs PDFs avec les Q&A détaillées</li>
                       <li>3. Entrez le nom de l'entreprise</li>
                       <li>4. Ajoutez votre clé API OpenAI</li>
                       <li>5. Cliquez sur Générer</li>
                     </ul>
+                    <div className="mt-2 p-2 bg-blue-100 rounded">
+                      <p className="text-xs text-blue-600">
+                        💡 Vous pouvez uploader plusieurs PDFs pour une analyse plus complète. 
+                        Tous les documents seront analysés ensemble.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={swotLoading || !swotForm.csvFile || !swotForm.pdfFile || !swotForm.businessName || !swotForm.apiKey}
+                disabled={swotLoading || !swotForm.csvFile || swotForm.pdfFiles.length === 0 || !swotForm.businessName || !swotForm.apiKey}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-md font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {swotLoading ? (
@@ -407,7 +496,17 @@ const App = () => {
                 </div>
                 <div className="space-y-2 mb-4">
                   <p><strong>Entreprise:</strong> {swotResult.business_name}</p>
-                  <p><strong>Données analysées:</strong> Profil + Q&A détaillées</p>
+                  <p><strong>Fichiers analysés:</strong> {swotResult.files_count} PDF{swotResult.files_count > 1 ? 's' : ''}</p>
+                  {swotResult.processed_files && (
+                    <div>
+                      <p><strong>Documents traités:</strong></p>
+                      <ul className="list-disc list-inside text-sm text-gray-600 ml-4">
+                        {swotResult.processed_files.map((filename, index) => (
+                          <li key={index}>{filename}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mb-6">
@@ -443,4 +542,4 @@ const App = () => {
   );
 };
 
-export default App; 
+export default App;
