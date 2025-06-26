@@ -200,7 +200,7 @@ def generate_action_plan(form_data, detailed_qa, swot_analysis, api_key):
     business_info = "\n".join([f"{k}: {v}" for k, v in form_data.items() if pd.notna(v)])
 
     prompt = f"""
-Tu es un consultant expert en stratégie. Génère un **Plan d’Actions** au format tableau structuré comme un livrable de cabinet de conseil (voir modèle ci-dessous).
+Tu es un consultant expert en stratégie. Génère un **Plan d’Actions** au format PDF structuré écrite comme un livrable de cabinet de conseil (voir modèle ci-dessous).
 
 faire ce qui suit:
 
@@ -222,15 +222,15 @@ faites ceci pour chacune de ces zones:
 - RSE et climat
 - Ressources humaines
 
-### 🧠 CONTEXTE À UTILISER :
+### CONTEXTE À UTILISER :
 - *Profil entreprise* : {business_info}
 - *Analyse complète* : {detailed_qa}
 - *Analyse SWOT* : {swot_analysis}
 
-🎯 **OBJECTIF** :
+**OBJECTIF** :
 Traduire les éléments clés de l’analyse SWOT en un plan d’actions opérationnel, hiérarchisé par priorité, prêt à être déployé.
 
-📌 **CONSIGNES DE STYLE** :
+ **CONSIGNES DE STYLE** :
 - Utilise toujours un **verbe d’action** fort au début (Ex : Mettre en place, Déployer, Structurer, Prioriser…)
 - Une ligne = une action claire (pas de blabla)
 - Chaque action doit pouvoir être **mise en œuvre facilement** dans un contexte PME/ETI
@@ -495,19 +495,18 @@ async def generate_action_plan_endpoint(
         form_data = matches.iloc[0].to_dict()
         action_plan = generate_action_plan(form_data, detailed_qa, swot_analysis, api_key)
         
-        # Create SWOT-only PDF (preserve original)
-        swot_only_header = f"ANALYSE SWOT - {business_name}\n\n"
-        swot_only_header += f"Documents analysés: {', '.join(processed_files)}\n"
-        swot_only_header += f"Nombre de documents PDF traités: {len(processed_files)}\n\n"
-        swot_only_header += "=" * 50 + "\n\n"
-        
-        swot_only_content = swot_only_header + swot_analysis
-        swot_pdf = create_pdf(swot_only_content, f"Analyse SWOT - {business_name}")
-        
-        # Save SWOT-only PDF
-        swot_pdf_id = str(uuid.uuid4())
-        swot_pdf_path = os.path.join(TEMP_DIR, f"{swot_pdf_id}.pdf")
-        swot_pdf.output(swot_pdf_path)
+        action_plan_header = f"PLAN D'ACTION - {business_name}\n\n"
+        action_plan_header += f"Documents analysés: {', '.join(processed_files)}\n"
+        action_plan_header += f"Nombre de documents PDF traités: {len(processed_files)}\n\n"
+        action_plan_header += "=" * 50 + "\n\n"
+
+        action_plan_content = action_plan_header + action_plan
+        action_pdf = create_pdf(action_plan_content, f"Plan d'action - {business_name}")
+
+        # Save Action Plan PDF
+        action_pdf_id = str(uuid.uuid4())
+        action_pdf_path = os.path.join(TEMP_DIR, f"{action_pdf_id}.pdf")
+        action_pdf.output(action_pdf_path)`
         
         # Create comprehensive PDF with SWOT + Action Plan
         comprehensive_header = f"ANALYSE STRATEGIQUE COMPLETE - {business_name}\n\n"

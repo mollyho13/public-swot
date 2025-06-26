@@ -630,11 +630,11 @@ const App = () => {
 
                     <div className="flex flex-wrap gap-3 mb-4">
                       <button
-                        onClick={() => downloadPdf(actionPlanResult.swot_pdf_id, `${actionPlanResult.business_name}_analyse_SWOT.pdf`)}
+                        onClick={() => downloadPdf(actionPlanResult.action_pdf_id, `${actionPlanResult.business_name}_analyse_SWOT.pdf`)}
                         className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
                       >
                         <Download className="inline w-4 h-4 mr-2" />
-                        SWOT Seul (PDF)
+                        Plan d'Action Seul (PDF)
                       </button>
                       
                       <button
