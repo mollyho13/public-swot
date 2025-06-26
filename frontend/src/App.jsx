@@ -138,12 +138,15 @@ const App = () => {
     formData.append('api_key', swotForm.apiKey);
 
     try {
+      console.log('Calling action plan API...'); // Debug log
       const response = await fetch(`${API_BASE_URL}/api/generate-action-plan`, {
         method: 'POST',
         body: formData,
       });
 
+      console.log('Response status:', response.status); // Debug log
       const data = await response.json();
+      console.log('Response data:', data); // Debug log
 
       if (!response.ok) {
         throw new Error(data.detail?.message || data.detail || 'Error generating action plan');
@@ -151,6 +154,7 @@ const App = () => {
 
       setActionPlanResult(data);
     } catch (err) {
+      console.error('Action plan error:', err); // Debug log
       setError(err.message);
     } finally {
       setActionPlanLoading(false);
@@ -325,7 +329,7 @@ const App = () => {
         {activeTab === 'questions' && (
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Générateur de Questions</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">📋 Générateur de Questions</h2>
               <p className="text-gray-600">Créez des questionnaires personnalisés de 50-100 questions diagnostiques basés sur le profil de votre entreprise.</p>
             </div>
 
@@ -386,7 +390,7 @@ const App = () => {
                     Génération en cours...
                   </>
                 ) : (
-                  'Générer les Questions'
+                  '🚀 Générer les Questions'
                 )}
               </button>
             </form>
@@ -434,7 +438,7 @@ const App = () => {
         {activeTab === 'swot' && (
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Analyse SWOT</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">📊 Analyse SWOT</h2>
               <p className="text-gray-600">Générez une analyse SWOT stratégique complète à partir des réponses détaillées de votre entreprise. Vous pouvez uploader plusieurs fichiers PDF.</p>
             </div>
 
@@ -527,7 +531,7 @@ const App = () => {
                     Génération en cours...
                   </>
                 ) : (
-                  'Générer l\'Analyse SWOT'
+                  '📊 Générer l\'Analyse SWOT'
                 )}
               </button>
             </form>
@@ -592,6 +596,14 @@ const App = () => {
                       )}
                     </button>
                   </div>
+                  
+                  {!actionPlanResult && (
+                    <div className="mt-3 p-3 bg-green-100 rounded-lg">
+                      <p className="text-sm text-green-700">
+                        ✅ <strong>SWOT terminé !</strong> Vous pouvez maintenant générer un plan d'action stratégique pour des recommandations concrètes.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Plan Results */}
@@ -616,17 +628,29 @@ const App = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => downloadPdf(actionPlanResult.pdf_id, `${actionPlanResult.business_name}_strategie_complete.pdf`)}
-                      className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      <Download className="inline w-4 h-4 mr-2" />
-                      Télécharger Stratégie Complète PDF
-                    </button>
+                    <div className="flex flex-wrap gap-3 mb-4">
+                      <button
+                        onClick={() => downloadPdf(actionPlanResult.swot_pdf_id, `${actionPlanResult.business_name}_analyse_SWOT.pdf`)}
+                        className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
+                      >
+                        <Download className="inline w-4 h-4 mr-2" />
+                        SWOT Seul (PDF)
+                      </button>
+                      
+                      <button
+                        onClick={() => downloadPdf(actionPlanResult.comprehensive_pdf_id, `${actionPlanResult.business_name}_strategie_complete.pdf`)}
+                        className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        <Download className="inline w-4 h-4 mr-2" />
+                        Stratégie Complète (PDF)
+                      </button>
+                    </div>
                     
-                    <div className="mt-4 p-4 bg-blue-100 rounded-lg">
+                    <div className="p-4 bg-blue-100 rounded-lg">
                       <p className="text-sm text-blue-700">
-                        💡 <strong>Le PDF complet contient :</strong> L'analyse SWOT + Le plan d'action détaillé + Toutes les recommandations stratégiques
+                        💡 <strong>Deux options de téléchargement :</strong>
+                        <br />• <strong>SWOT Seul :</strong> Analyse SWOT uniquement
+                        <br />• <strong>Stratégie Complète :</strong> SWOT + Plan d'action détaillé
                       </p>
                     </div>
                   </div>
@@ -640,8 +664,8 @@ const App = () => {
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-8 mt-16">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <p className="text-lg font-semibold mb-2">SWOT Analysis Platform</p>
-          <p className="text-gray-400">Propulsé par OpenAI GPT-4o • Développé avec FastAPI & React • Créer par Molly Ho</p>
+          <p className="text-lg font-semibold mb-2">🚀 AI Business Analysis Platform</p>
+          <p className="text-gray-400">Propulsé par OpenAI GPT-4o • Développé avec FastAPI & React</p>
         </div>
       </footer>
     </div>

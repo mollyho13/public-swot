@@ -199,72 +199,42 @@ def generate_action_plan(form_data, detailed_qa, swot_analysis, api_key):
     
     business_info = "\n".join([f"{k}: {v}" for k, v in form_data.items() if pd.notna(v)])
 
-    prompt = f"""En tant que consultant senior en stratégie d'entreprise, créez un plan d'action stratégique concret et opérationnel basé sur l'analyse SWOT réalisée et les données détaillées de l'entreprise.
+    prompt = f"""
+Tu es un consultant expert en stratégie. Génère un **Plan d’Actions** au format tableau structuré comme un livrable de cabinet de conseil (voir modèle ci-dessous).
 
-## OBJECTIFS DU PLAN D'ACTION
+faire ce qui suit:
 
-**Mission :** Transformer l'analyse SWOT en étapes concrètes et réalisables pour améliorer la performance et la compétitivité de l'entreprise.
+1. **RECOMMANDATIONS D’ACTIONS** – 1 à 2 actions concrètes, courtes, claires et opérationnelles, sous forme de puces
+2. **ÉCHÉANCES** – Exprimée en trimestre et année (ex: T3 2025, T1 2026…)
+3. **RESPONSABLE** – Toujours écrire : “À remplir par le client”
+4. **PRIO.** – Niveau de priorité :
+   - 🔴 Priorité 1
+   - 🟡 Priorité 2
+   - ⚪️ Priorité 3
 
-**Approche :** Plan d'action pragmatique avec priorités, délais, ressources nécessaires et indicateurs de suivi.
+faites ceci pour chacune de ces zones: 
+- Marché et stratégie
+- SI et digital
+- Organisation et management
+- finance et juridique
+- commercial et marketing
+- opérations
+- RSE et climat
+- Ressources humaines
 
-## STRUCTURE DU PLAN D'ACTION
+### 🧠 CONTEXTE À UTILISER :
+- *Profil entreprise* : {business_info}
+- *Analyse complète* : {detailed_qa}
+- *Analyse SWOT* : {swot_analysis}
 
-### 🎯 PRIORITÉS STRATÉGIQUES (Top 3)
-Identifiez les 3 axes stratégiques prioritaires en croisant Forces/Opportunités et en neutralisant Faiblesses/Menaces critiques.
+🎯 **OBJECTIF** :
+Traduire les éléments clés de l’analyse SWOT en un plan d’actions opérationnel, hiérarchisé par priorité, prêt à être déployé.
 
-### 📋 ACTIONS IMMÉDIATES (0-3 mois)
-**Actions urgentes à mettre en œuvre :**
-- Actions correctives pour les faiblesses critiques
-- Saisie d'opportunités à court terme
-- Mise en sécurité face aux menaces immédiates
-*Format : Action précise / Responsable / Délai / Budget estimé*
-
-### 🚀 PROJETS COURT TERME (3-12 mois)
-**Projets de développement :**
-- Capitalisation sur les forces identifiées
-- Développement de nouvelles capacités
-- Amélioration des processus internes
-*Format : Projet / Étapes clés / Ressources / ROI estimé*
-
-### 🏗️ INITIATIVES MOYEN TERME (1-3 ans)
-**Transformations structurelles :**
-- Investissements stratégiques
-- Diversification ou expansion
-- Développement organisationnel
-*Format : Initiative / Jalons / Investissement / Impact attendu*
-
-### 📊 INDICATEURS DE SUIVI
-**KPIs pour mesurer le progrès :**
-- Indicateurs financiers (CA, marge, rentabilité)
-- Indicateurs opérationnels (qualité, délais, productivité)
-- Indicateurs stratégiques (part de marché, satisfaction client)
-
-### ⚠️ GESTION DES RISQUES
-**Plan de mitigation :**
-- Identification des risques du plan d'action
-- Stratégies de contournement
-- Plans de contingence
-
-## DONNÉES DE BASE
-
-**Profil entreprise :**
-{business_info}
-
-**Analyse détaillée :**
-{detailed_qa}
-
-**Analyse SWOT réalisée :**
-{swot_analysis}
-
-## CONSIGNES SPÉCIFIQUES
-
-1. **Concrétude maximale :** Chaque action doit être spécifique, mesurable et réalisable
-2. **Cohérence budgétaire :** Tenir compte de la taille et des ressources de l'entreprise
-3. **Séquencement logique :** Respecter les dépendances entre actions
-4. **Adaptabilité sectorielle :** Personnaliser selon le secteur d'activité
-5. **Faisabilité opérationnelle :** Considérer les contraintes organisationnelles réelles
-
-Créez un plan d'action qui transforme réellement l'analyse SWOT en roadmap opérationnelle."""
+📌 **CONSIGNES DE STYLE** :
+- Utilise toujours un **verbe d’action** fort au début (Ex : Mettre en place, Déployer, Structurer, Prioriser…)
+- Une ligne = une action claire (pas de blabla)
+- Chaque action doit pouvoir être **mise en œuvre facilement** dans un contexte PME/ETI
+"""
 
     try:
         response = openai.ChatCompletion.create(
@@ -525,6 +495,20 @@ async def generate_action_plan_endpoint(
         form_data = matches.iloc[0].to_dict()
         action_plan = generate_action_plan(form_data, detailed_qa, swot_analysis, api_key)
         
+        # Create SWOT-only PDF (preserve original)
+        swot_only_header = f"ANALYSE SWOT - {business_name}\n\n"
+        swot_only_header += f"Documents analysés: {', '.join(processed_files)}\n"
+        swot_only_header += f"Nombre de documents PDF traités: {len(processed_files)}\n\n"
+        swot_only_header += "=" * 50 + "\n\n"
+        
+        swot_only_content = swot_only_header + swot_analysis
+        swot_pdf = create_pdf(swot_only_content, f"Analyse SWOT - {business_name}")
+        
+        # Save SWOT-only PDF
+        swot_pdf_id = str(uuid.uuid4())
+        swot_pdf_path = os.path.join(TEMP_DIR, f"{swot_pdf_id}.pdf")
+        swot_pdf.output(swot_pdf_path)
+        
         # Create comprehensive PDF with SWOT + Action Plan
         comprehensive_header = f"ANALYSE STRATEGIQUE COMPLETE - {business_name}\n\n"
         comprehensive_header += f"Documents analysés: {', '.join(processed_files)}\n"
@@ -539,12 +523,12 @@ async def generate_action_plan_endpoint(
         comprehensive_content += "=" * 60 + "\n\n"
         comprehensive_content += action_plan
         
-        pdf = create_pdf(comprehensive_content, f"Strategie Complete - {business_name}")
+        comprehensive_pdf = create_pdf(comprehensive_content, f"Strategie Complete - {business_name}")
         
-        # Save PDF temporarily
-        pdf_id = str(uuid.uuid4())
-        pdf_path = os.path.join(TEMP_DIR, f"{pdf_id}.pdf")
-        pdf.output(pdf_path)
+        # Save comprehensive PDF
+        comprehensive_pdf_id = str(uuid.uuid4())
+        comprehensive_pdf_path = os.path.join(TEMP_DIR, f"{comprehensive_pdf_id}.pdf")
+        comprehensive_pdf.output(comprehensive_pdf_path)
         
         return {
             "success": True,
@@ -552,7 +536,8 @@ async def generate_action_plan_endpoint(
             "action_plan": action_plan,
             "processed_files": processed_files,
             "files_count": len(processed_files),
-            "pdf_id": pdf_id
+            "swot_pdf_id": swot_pdf_id,  # SWOT-only PDF ID
+            "comprehensive_pdf_id": comprehensive_pdf_id  # Combined PDF ID
         }
         
     except HTTPException:
