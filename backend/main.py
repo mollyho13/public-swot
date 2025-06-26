@@ -193,6 +193,90 @@ Réponses détaillées (analysées à partir de plusieurs documents) : {detailed
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
+def generate_action_plan(form_data, detailed_qa, swot_analysis, api_key):
+    """Generate strategic action plan based on SWOT analysis and company data"""
+    openai.api_key = api_key
+    
+    business_info = "\n".join([f"{k}: {v}" for k, v in form_data.items() if pd.notna(v)])
+
+    prompt = f"""En tant que consultant senior en stratégie d'entreprise, créez un plan d'action stratégique concret et opérationnel basé sur l'analyse SWOT réalisée et les données détaillées de l'entreprise.
+
+## OBJECTIFS DU PLAN D'ACTION
+
+**Mission :** Transformer l'analyse SWOT en étapes concrètes et réalisables pour améliorer la performance et la compétitivité de l'entreprise.
+
+**Approche :** Plan d'action pragmatique avec priorités, délais, ressources nécessaires et indicateurs de suivi.
+
+## STRUCTURE DU PLAN D'ACTION
+
+### 🎯 PRIORITÉS STRATÉGIQUES (Top 3)
+Identifiez les 3 axes stratégiques prioritaires en croisant Forces/Opportunités et en neutralisant Faiblesses/Menaces critiques.
+
+### 📋 ACTIONS IMMÉDIATES (0-3 mois)
+**Actions urgentes à mettre en œuvre :**
+- Actions correctives pour les faiblesses critiques
+- Saisie d'opportunités à court terme
+- Mise en sécurité face aux menaces immédiates
+*Format : Action précise / Responsable / Délai / Budget estimé*
+
+### 🚀 PROJETS COURT TERME (3-12 mois)
+**Projets de développement :**
+- Capitalisation sur les forces identifiées
+- Développement de nouvelles capacités
+- Amélioration des processus internes
+*Format : Projet / Étapes clés / Ressources / ROI estimé*
+
+### 🏗️ INITIATIVES MOYEN TERME (1-3 ans)
+**Transformations structurelles :**
+- Investissements stratégiques
+- Diversification ou expansion
+- Développement organisationnel
+*Format : Initiative / Jalons / Investissement / Impact attendu*
+
+### 📊 INDICATEURS DE SUIVI
+**KPIs pour mesurer le progrès :**
+- Indicateurs financiers (CA, marge, rentabilité)
+- Indicateurs opérationnels (qualité, délais, productivité)
+- Indicateurs stratégiques (part de marché, satisfaction client)
+
+### ⚠️ GESTION DES RISQUES
+**Plan de mitigation :**
+- Identification des risques du plan d'action
+- Stratégies de contournement
+- Plans de contingence
+
+## DONNÉES DE BASE
+
+**Profil entreprise :**
+{business_info}
+
+**Analyse détaillée :**
+{detailed_qa}
+
+**Analyse SWOT réalisée :**
+{swot_analysis}
+
+## CONSIGNES SPÉCIFIQUES
+
+1. **Concrétude maximale :** Chaque action doit être spécifique, mesurable et réalisable
+2. **Cohérence budgétaire :** Tenir compte de la taille et des ressources de l'entreprise
+3. **Séquencement logique :** Respecter les dépendances entre actions
+4. **Adaptabilité sectorielle :** Personnaliser selon le secteur d'activité
+5. **Faisabilité opérationnelle :** Considérer les contraintes organisationnelles réelles
+
+Créez un plan d'action qui transforme réellement l'analyse SWOT en roadmap opérationnelle."""
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4000,
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
+
 def create_pdf(content, title="Document"):
     """Create PDF from content"""
     try:
@@ -378,6 +462,94 @@ async def generate_swot_endpoint(
             "success": True,
             "business_name": business_name,
             "swot_analysis": swot_analysis,
+            "processed_files": processed_files,
+            "files_count": len(processed_files),
+            "pdf_id": pdf_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.post("/api/generate-action-plan")
+async def generate_action_plan_endpoint(
+    csv_file: UploadFile = File(...),
+    pdf_files: List[UploadFile] = File(...),
+    business_name: str = Form(...),
+    swot_analysis: str = Form(...),
+    api_key: str = Form(...)
+):
+    """Generate strategic action plan from SWOT analysis and company data"""
+    try:
+        # Validate file types
+        if not csv_file.filename.endswith('.csv'):
+            raise HTTPException(status_code=400, detail="Please upload a CSV file")
+        
+        # Validate PDF files
+        for pdf_file in pdf_files:
+            if not pdf_file.filename.endswith('.pdf'):
+                raise HTTPException(status_code=400, detail=f"File {pdf_file.filename} is not a PDF file")
+        
+        if len(pdf_files) == 0:
+            raise HTTPException(status_code=400, detail="At least one PDF file is required")
+        
+        # Read CSV
+        csv_content = await csv_file.read()
+        df = pd.read_csv(io.BytesIO(csv_content))
+        
+        # Check if required column exists
+        if 'Business Name (pas de caractères spéciaux)' not in df.columns:
+            raise HTTPException(
+                status_code=400, 
+                detail="Column 'Business Name (pas de caractères spéciaux)' not found in CSV"
+            )
+        
+        # Find matching business
+        matches = df[df['Business Name (pas de caractères spéciaux)'].str.lower() == business_name.lower()]
+        
+        if matches.empty:
+            available_businesses = df['Business Name (pas de caractères spéciaux)'].dropna().unique()[:10]
+            raise HTTPException(
+                status_code=404, 
+                detail={
+                    "message": f"No responses found for business '{business_name}'",
+                    "available_businesses": available_businesses.tolist()
+                }
+            )
+        
+        # Extract content from all PDF files
+        detailed_qa, processed_files = extract_qa_from_multiple_pdfs(pdf_files)
+        
+        # Generate action plan
+        form_data = matches.iloc[0].to_dict()
+        action_plan = generate_action_plan(form_data, detailed_qa, swot_analysis, api_key)
+        
+        # Create comprehensive PDF with SWOT + Action Plan
+        comprehensive_header = f"ANALYSE STRATEGIQUE COMPLETE - {business_name}\n\n"
+        comprehensive_header += f"Documents analysés: {', '.join(processed_files)}\n"
+        comprehensive_header += f"Nombre de documents PDF traités: {len(processed_files)}\n\n"
+        comprehensive_header += "=" * 60 + "\n"
+        comprehensive_header += "PARTIE 1: ANALYSE SWOT\n"
+        comprehensive_header += "=" * 60 + "\n\n"
+        
+        comprehensive_content = comprehensive_header + swot_analysis + "\n\n"
+        comprehensive_content += "=" * 60 + "\n"
+        comprehensive_content += "PARTIE 2: PLAN D'ACTION STRATEGIQUE\n"
+        comprehensive_content += "=" * 60 + "\n\n"
+        comprehensive_content += action_plan
+        
+        pdf = create_pdf(comprehensive_content, f"Strategie Complete - {business_name}")
+        
+        # Save PDF temporarily
+        pdf_id = str(uuid.uuid4())
+        pdf_path = os.path.join(TEMP_DIR, f"{pdf_id}.pdf")
+        pdf.output(pdf_path)
+        
+        return {
+            "success": True,
+            "business_name": business_name,
+            "action_plan": action_plan,
             "processed_files": processed_files,
             "files_count": len(processed_files),
             "pdf_id": pdf_id

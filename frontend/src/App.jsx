@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, BarChart3, Download, Loader2, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Upload, FileText, BarChart3, Download, Loader2, CheckCircle, AlertCircle, X, Target } from 'lucide-react';
 
 const API_BASE_URL = 'https://public-swot.onrender.com';
 
@@ -18,8 +18,10 @@ const App = () => {
   });
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [swotLoading, setSwotLoading] = useState(false);
+  const [actionPlanLoading, setActionPlanLoading] = useState(false);
   const [questionsResult, setQuestionsResult] = useState(null);
   const [swotResult, setSwotResult] = useState(null);
+  const [actionPlanResult, setActionPlanResult] = useState(null);
   const [error, setError] = useState(null);
 
   const handleFileUpload = (file, form, field, setter) => {
@@ -80,6 +82,7 @@ const App = () => {
     setSwotLoading(true);
     setError(null);
     setSwotResult(null);
+    setActionPlanResult(null); // Clear action plan when generating new SWOT
 
     const formData = new FormData();
     formData.append('csv_file', swotForm.csvFile);
@@ -109,6 +112,48 @@ const App = () => {
       setError(err.message);
     } finally {
       setSwotLoading(false);
+    }
+  };
+
+  const generateActionPlan = async () => {
+    if (!swotResult) {
+      setError("SWOT analysis must be generated first");
+      return;
+    }
+
+    setActionPlanLoading(true);
+    setError(null);
+    setActionPlanResult(null);
+
+    const formData = new FormData();
+    formData.append('csv_file', swotForm.csvFile);
+    
+    // Append multiple PDF files
+    swotForm.pdfFiles.forEach((file, index) => {
+      formData.append('pdf_files', file);
+    });
+    
+    formData.append('business_name', swotForm.businessName);
+    formData.append('swot_analysis', swotResult.swot_analysis);
+    formData.append('api_key', swotForm.apiKey);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/generate-action-plan`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail?.message || data.detail || 'Error generating action plan');
+      }
+
+      setActionPlanResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActionPlanLoading(false);
     }
   };
 
@@ -489,42 +534,103 @@ const App = () => {
 
             {/* SWOT Result */}
             {swotResult && (
-              <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center mb-4">
-                  <CheckCircle className="w-6 h-6 text-green-500 mr-2" />
-                  <h3 className="text-lg font-semibold text-green-800">Analyse SWOT générée avec succès!</h3>
-                </div>
-                <div className="space-y-2 mb-4">
-                  <p><strong>Entreprise:</strong> {swotResult.business_name}</p>
-                  <p><strong>Fichiers analysés:</strong> {swotResult.files_count} PDF{swotResult.files_count > 1 ? 's' : ''}</p>
-                  {swotResult.processed_files && (
-                    <div>
-                      <p><strong>Documents traités:</strong></p>
-                      <ul className="list-disc list-inside text-sm text-gray-600 ml-4">
-                        {swotResult.processed_files.map((filename, index) => (
-                          <li key={index}>{filename}</li>
-                        ))}
-                      </ul>
+              <div className="mt-8 space-y-6">
+                {/* SWOT Analysis Results */}
+                <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center mb-4">
+                    <CheckCircle className="w-6 h-6 text-green-500 mr-2" />
+                    <h3 className="text-lg font-semibold text-green-800">Analyse SWOT générée avec succès!</h3>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    <p><strong>Entreprise:</strong> {swotResult.business_name}</p>
+                    <p><strong>Fichiers analysés:</strong> {swotResult.files_count} PDF{swotResult.files_count > 1 ? 's' : ''}</p>
+                    {swotResult.processed_files && (
+                      <div>
+                        <p><strong>Documents traités:</strong></p>
+                        <ul className="list-disc list-inside text-sm text-gray-600 ml-4">
+                          {swotResult.processed_files.map((filename, index) => (
+                            <li key={index}>{filename}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mb-6">
+                    <h4 className="font-medium mb-3">Aperçu de l'analyse SWOT:</h4>
+                    <div className="bg-white p-4 rounded-lg border max-h-96 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-sm text-gray-700">
+                        {swotResult.swot_analysis}
+                      </pre>
                     </div>
-                  )}
-                </div>
-                
-                <div className="mb-6">
-                  <h4 className="font-medium mb-3">Aperçu de l'analyse SWOT:</h4>
-                  <div className="bg-white p-4 rounded-lg border max-h-96 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-700">
-                      {swotResult.swot_analysis}
-                    </pre>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => downloadPdf(swotResult.pdf_id, `${swotResult.business_name}_analyse_SWOT.pdf`)}
+                      className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      <Download className="inline w-4 h-4 mr-2" />
+                      Télécharger SWOT PDF
+                    </button>
+                    
+                    <button
+                      onClick={generateActionPlan}
+                      disabled={actionPlanLoading}
+                      className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {actionPlanLoading ? (
+                        <>
+                          <Loader2 className="animate-spin inline w-4 h-4 mr-2" />
+                          Génération...
+                        </>
+                      ) : (
+                        <>
+                          <Target className="inline w-4 h-4 mr-2" />
+                          Générer le Plan d'Action
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => downloadPdf(swotResult.pdf_id, `${swotResult.business_name}_analyse_SWOT.pdf`)}
-                  className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
-                >
-                  <Download className="inline w-4 h-4 mr-2" />
-                  Télécharger le PDF
-                </button>
+                {/* Action Plan Results */}
+                {actionPlanResult && (
+                  <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center mb-4">
+                      <CheckCircle className="w-6 h-6 text-blue-500 mr-2" />
+                      <h3 className="text-lg font-semibold text-blue-800">Plan d'Action généré avec succès!</h3>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <p><strong>Entreprise:</strong> {actionPlanResult.business_name}</p>
+                      <p><strong>Basé sur:</strong> Analyse SWOT + {actionPlanResult.files_count} document{actionPlanResult.files_count > 1 ? 's' : ''} détaillé{actionPlanResult.files_count > 1 ? 's' : ''}</p>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <h4 className="font-medium mb-3">Plan d'Action Stratégique:</h4>
+                      <div className="bg-white p-4 rounded-lg border max-h-96 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-sm text-gray-700">
+                          {actionPlanResult.action_plan}
+                        </pre>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => downloadPdf(actionPlanResult.pdf_id, `${actionPlanResult.business_name}_strategie_complete.pdf`)}
+                      className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <Download className="inline w-4 h-4 mr-2" />
+                      Télécharger Stratégie Complète PDF
+                    </button>
+                    
+                    <div className="mt-4 p-4 bg-blue-100 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        💡 <strong>Le PDF complet contient :</strong> L'analyse SWOT + Le plan d'action détaillé + Toutes les recommandations stratégiques
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
