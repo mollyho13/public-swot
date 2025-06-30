@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, BarChart3, Download, Loader2, CheckCircle, AlertCircle, X, Target } from 'lucide-react';
 
-const API_BASE_URL = 'http://0.0.0.0:8000';
+const API_BASE_URL = 'https://public-swot.onrender.com';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('questions');
