@@ -535,7 +535,7 @@ async def generate_action_plan_endpoint(
             "action_plan": action_plan,
             "processed_files": processed_files,
             "files_count": len(processed_files),
-            "swot_pdf_id": swot_pdf_id,  # SWOT-only PDF ID
+            "action_pdf_id": action_pdf_id,  # SWOT-only PDF ID
             "comprehensive_pdf_id": comprehensive_pdf_id  # Combined PDF ID
         }
         
