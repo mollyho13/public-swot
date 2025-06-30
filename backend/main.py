@@ -506,7 +506,7 @@ async def generate_action_plan_endpoint(
         # Save Action Plan PDF
         action_pdf_id = str(uuid.uuid4())
         action_pdf_path = os.path.join(TEMP_DIR, f"{action_pdf_id}.pdf")
-        action_pdf.output(action_pdf_path)`
+        action_pdf.output(action_pdf_path)
         
         # Create comprehensive PDF with SWOT + Action Plan
         comprehensive_header = f"ANALYSE STRATEGIQUE COMPLETE - {business_name}\n\n"
