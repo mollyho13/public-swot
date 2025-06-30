@@ -11,9 +11,6 @@ import tempfile
 import os
 import uuid
 import io
-import markdown
-from weasyprint import HTML, CSS
-from weasyprint.text.fonts import FontConfiguration
 from typing import Optional, List
 
 app = FastAPI(title="AI Business Analysis API", version="1.0.0")
@@ -142,14 +139,14 @@ def generate_swot_analysis(form_data, detailed_qa, api_key):
 
 ## CONSIGNES STRATÉGIQUES PRIORITAIRES
 
-**Perspective d'analyse :** Adopte le point de vue d'un consultant senior qui comprend les enjeux spécifiques aux PME et les dynamiques sectorielles.
+**Perspective d'analyse :** Adopte le point de vue d'un consultant senior qui comprend les enjeux spécifiques aux PME et les dynamiques sectorielles. 
 
 **Focus qualité > quantité :** Limite-toi aux 3-4 éléments les plus critiques par catégorie, mais développe-les avec profondeur stratégique.
 
 ## STRUCTURE D'ANALYSE
 
 ### ATOUTS (Forces)
-Focus sur les **avantages concurrentiels réels** :
+Focus sur les **avantages concurrentiels réels : ** 
 - Positionnement différenciant vs concurrents majeurs
 - Modèle économique ou approche unique 
 - Relations client et satisfaction (taille humaine, proximité)
@@ -157,21 +154,21 @@ Focus sur les **avantages concurrentiels réels** :
 - Stabilité contractuelle ou récurrence business
 
 ### FAIBLESSES (Faiblesses internes)
-**Identifier les risques opérationnels critiques** :
+**Identifier les risques opérationnels critiques : ** 
 - Dépendances organisationnelles (leadership, personne-clé)
 - Contraintes de structuration interne (processus, communication)
 - Limitations financières impactant la croissance
 - Vulnérabilités contractuelles ou commerciales majeures
 
 ### OPPORTUNITÉS
-**Axes de développement réalistes** :
+**Axes de développement réalistes : ** 
 - Évolutions réglementaires/marché favorables au positionnement
 - Opportunités de conquête commerciale identifiées
 - Leviers de transformation digitale/innovation
 - Possibilités d'expansion géographique ou diversification
 
 ### MENACES
-**Risques business majeurs** :
+**Risques business majeurs : ** 
 - Concurrence spécifique (nommer les acteurs dominants)
 - Complexité croissante du marché (appels d'offres, etc.)
 - Risques financiers et de stabilité
@@ -209,7 +206,7 @@ Tu es un consultant en stratégie senior en cabinet de conseil. Génère un **Pl
 Convertir les éléments concrets de l’analyse SWOT en actions **priorisées, activables immédiatement**, adaptées **spécifiquement au contexte réel de l’entreprise** (taille, secteur, maturité…).
 
 ## STRUCTURE À PRODUIRE POUR CHAQUE DOMAINE CI-DESSOUS :
-1. **RECOMMANDATIONS D’ACTIONS** :  
+1. **RECOMMANDATIONS D’ACTIONS : **   
    - 2 à 3 actions maximum par domaine  
    - Toujours commencer par un **verbe d’action fort** (Ex : Définir, Mettre en place, Structurer, Optimiser, Digitaliser…)  
    -  Donnez des exemples tels que les services existants qu'ils pourraient utiliser et nommez les concurrents réels sur leur marché.
@@ -218,11 +215,11 @@ Convertir les éléments concrets de l’analyse SWOT en actions **priorisées, 
      - **Opérationnelle** : directement mise en œuvre par une PME/ETI sans dépendre d’acteurs externes ou d’approches trop générales  
      - **Structurée** en deux puces (problème ciblé + réponse/action)
 
-2. **ÉCHÉANCE** : Trimestre et année (ex. T3 2025)
+2. **ÉCHÉANCE : **  Trimestre et année (ex. T3 2025)
 
-3. **RESPONSABLE** : Toujours écrire : “À remplir par le client”
+3. **RESPONSABLE : **  Toujours écrire : “À remplir par le client”
 
-4. **PRIORITÉ** : 
+4. **PRIORITÉ : **  
    - Priorité 1 = action urgente / structurante
    - Priorité 2 = action utile / court-moyen terme
    - Priorité 3 = action de fond / moins critique
@@ -242,7 +239,7 @@ Convertir les éléments concrets de l’analyse SWOT en actions **priorisées, 
 - *Analyse complète* : {detailed_qa}
 
 ## STANDARDS À RESPECTER :
-- Suivre **le format des exemples suivants** :
+- Suivre **le format des exemples suivants : ** 
   - Exemple :  
     - Déployer un outil d’évaluation des AO basé sur un scoring structuré  
     - Optimiser la sélection des opportunités et maximiser le taux de conversion  
@@ -264,221 +261,61 @@ Convertir les éléments concrets de l’analyse SWOT en actions **priorisées, 
         raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
 def create_pdf(content, title="Document"):
-    """Create beautifully formatted PDF from markdown using HTML/CSS"""
-    try:
-        # Convert markdown to HTML
-        md = markdown.Markdown(extensions=['tables', 'toc', 'codehilite'])
-        html_content = md.convert(content)
-        
-        # Create styled HTML document
-        html_template = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                @page {{
-                    margin: 2cm;
-                    @top-center {{
-                        content: "{title}";
-                        font-family: Arial, sans-serif;
-                        font-size: 10pt;
-                        color: #666;
-                    }}
-                    @bottom-center {{
-                        content: "Page " counter(page) " of " counter(pages);
-                        font-family: Arial, sans-serif;
-                        font-size: 10pt;
-                        color: #666;
-                    }}
-                }}
-                
-                body {{
-                    font-family: Arial, sans-serif;
-                    font-size: 11pt;
-                    line-height: 1.5;
-                    color: #333;
-                }}
-                
-                h1 {{
-                    color: #2c3e50;
-                    font-size: 18pt;
-                    margin-top: 0;
-                    margin-bottom: 16pt;
-                    text-align: center;
-                    border-bottom: 2px solid #3498db;
-                    padding-bottom: 8pt;
-                }}
-                
-                h2 {{
-                    color: #34495e;
-                    font-size: 14pt;
-                    margin-top: 20pt;
-                    margin-bottom: 10pt;
-                    border-left: 4px solid #3498db;
-                    padding-left: 10pt;
-                    background-color: #f8f9fa;
-                    padding: 8pt;
-                    border-radius: 4pt;
-                }}
-                
-                h3 {{
-                    color: #34495e;
-                    font-size: 12pt;
-                    margin-top: 16pt;
-                    margin-bottom: 8pt;
-                    border-left: 2px solid #95a5a6;
-                    padding-left: 8pt;
-                }}
-                
-                h4 {{
-                    color: #34495e;
-                    font-size: 11pt;
-                    margin-top: 12pt;
-                    margin-bottom: 6pt;
-                }}
-                
-                p {{
-                    margin-bottom: 8pt;
-                    text-align: justify;
-                }}
-                
-                strong {{
-                    color: #2c3e50;
-                    font-weight: bold;
-                }}
-                
-                em {{
-                    color: #7f8c8d;
-                    font-style: italic;
-                }}
-                
-                ul, ol {{
-                    margin-bottom: 12pt;
-                    padding-left: 20pt;
-                }}
-                
-                li {{
-                    margin-bottom: 4pt;
-                    line-height: 1.4;
-                }}
-                
-                .priority-high {{
-                    background-color: #ffebee;
-                    border-left: 4px solid #e74c3c;
-                    padding: 8pt;
-                    margin: 8pt 0;
-                    border-radius: 4pt;
-                }}
-                
-                .priority-medium {{
-                    background-color: #fff8e1;
-                    border-left: 4px solid #f39c12;
-                    padding: 8pt;
-                    margin: 8pt 0;
-                    border-radius: 4pt;
-                }}
-                
-                .priority-low {{
-                    background-color: #e8f5e8;
-                    border-left: 4px solid #27ae60;
-                    padding: 8pt;
-                    margin: 8pt 0;
-                    border-radius: 4pt;
-                }}
-                
-                .separator {{
-                    border-top: 1px solid #bdc3c7;
-                    margin: 16pt 0;
-                }}
-                
-                .action-item {{
-                    background-color: #f8f9fa;
-                    border: 1px solid #dee2e6;
-                    border-radius: 4pt;
-                    padding: 10pt;
-                    margin: 8pt 0;
-                }}
-                
-                .highlight {{
-                    background-color: #fff3cd;
-                    padding: 2pt 4pt;
-                    border-radius: 2pt;
-                }}
-                
-                code {{
-                    background-color: #f1f2f6;
-                    padding: 2pt 4pt;
-                    border-radius: 2pt;
-                    font-family: "Courier New", monospace;
-                    font-size: 10pt;
-                }}
-                
-                blockquote {{
-                    border-left: 3px solid #3498db;
-                    margin: 12pt 0;
-                    padding-left: 12pt;
-                    font-style: italic;
-                    background-color: #f8f9fa;
-                    padding: 8pt 8pt 8pt 20pt;
-                }}
-            </style>
-        </head>
-        <body>
-            <h1>{title}</h1>
-            {html_content}
-        </body>
-        </html>
-        """
-        
-        # Generate PDF from HTML
-        font_config = FontConfiguration()
-        html_doc = HTML(string=html_template)
-        
-        # Create temporary file for PDF
-        temp_pdf_path = os.path.join(TEMP_DIR, f"temp_advanced_{uuid.uuid4()}.pdf")
-        html_doc.write_pdf(temp_pdf_path, font_config=font_config)
-        
-        # Return a custom PDF object that works with your existing code
-        class AdvancedPDF:
-            def __init__(self, pdf_path):
-                self.pdf_path = pdf_path
-                
-            def output(self, output_path):
-                """Copy the generated PDF to the output path"""
-                import shutil
-                shutil.copy2(self.pdf_path, output_path)
-                # Clean up temp file
-                if os.path.exists(self.pdf_path):
-                    os.remove(self.pdf_path)
-        
-        return AdvancedPDF(temp_pdf_path)
-        
-    except Exception as e:
-        print(f"Advanced PDF creation failed: {e}")
-        # Fallback to basic PDF creation
-        return create_basic_pdf(content, title)
-
-def create_basic_pdf(content, title="Document"):
-    """Fallback basic PDF creation"""
+    """Create formatted PDF from markdown content"""
     try:
         pdf = FPDF()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
         
         # Add title
-        pdf.set_font('Arial', 'B', 16)
-        pdf.cell(0, 10, encode_text(title), ln=True, align='C')
+        pdf.set_font('Arial', 'B', 18)
+        pdf.cell(0, 15, title, ln=True, align='C')
         pdf.ln(10)
         
-        # Add content
-        pdf.set_font('Arial', '', 11)
-        
+        # Process content line by line with markdown formatting
         lines = content.split('\n')
+        
         for line in lines:
-            encoded_line = encode_text(line)
-            pdf.multi_cell(0, 6, encoded_line)
-            pdf.ln(2)
+            line = line.strip()
+            
+            if not line:  # Empty line
+                pdf.ln(4)
+                continue
+            
+            # Headers (##, ###, ####)
+            if line.startswith('####'):
+                pdf.ln(3)
+                pdf.set_font('Arial', 'B', 12)
+                header_text = line.replace('####', '').strip()
+                pdf.cell(0, 8, encode_text(header_text), ln=True)
+                pdf.ln(2)
+                
+            elif line.startswith('###'):
+                pdf.ln(4)
+                pdf.set_font('Arial', 'B', 13)
+                header_text = line.replace('###', '').strip()
+                pdf.cell(0, 9, encode_text(header_text), ln=True)
+                pdf.ln(3)
+                
+            elif line.startswith('##'):
+                pdf.ln(5)
+                pdf.set_font('Arial', 'B', 14)
+                header_text = line.replace('##', '').strip()
+                pdf.cell(0, 10, encode_text(header_text), ln=True)
+                pdf.ln(3)
+                
+            # Separator lines (===, ---)
+            elif line.startswith('===') or line.startswith('---'):
+                pdf.ln(2)
+                pdf.set_font('Arial', '', 10)
+                pdf.cell(0, 1, '', ln=True, border='T')
+                pdf.ln(2)
+                
+            # Regular paragraphs with inline formatting
+            else:
+                pdf.set_font('Arial', '', 11)
+                process_formatted_text(pdf, line)
+                pdf.ln(3)
         
         return pdf
     except Exception as e:
@@ -490,6 +327,94 @@ def encode_text(text):
         return text.encode('latin-1', 'replace').decode('latin-1')
     except:
         return ''.join(char for char in text if ord(char) < 256)
+
+def process_formatted_text(pdf, text):
+    """Process text with bold, italic, and other inline formatting"""
+    # Handle bullet points
+    if text.strip().startswith('-'):
+        # Add bullet point with proper indentation
+        bullet_text = text.strip().lstrip('-').strip()
+        pdf.cell(10, 6, '-', ln=False)
+        process_inline_formatting(pdf, bullet_text, indent=True)
+        return
+    
+    # Handle numbered lists
+    import re
+    numbered_match = re.match(r'^\s*(\d+)\.\s*(.+)', text)
+    if numbered_match:
+        number = numbered_match.group(1)
+        list_text = numbered_match.group(2)
+        pdf.cell(15, 6, f"{number}.", ln=False)
+        process_inline_formatting(pdf, list_text, indent=True)
+        return
+    
+    # Regular text
+    process_inline_formatting(pdf, text)
+
+def process_inline_formatting(pdf, text, indent=False):
+    import re
+    
+    if indent:
+        start_x = pdf.get_x()
+        line_width = 190 - start_x
+    else:
+        line_width = 190
+
+    parts = re.split(r'(\*\*[^*]+\*\*|\*[^*]+\*)', text)
+    current_line = ""
+
+    i = 0
+    while i < len(parts):
+        part = parts[i]
+
+        if not part:
+            i += 1
+            continue
+
+        # Bold
+        if part.startswith('**') and part.endswith('**'):
+            bold_text = part[2:-2]
+            if current_line:
+                pdf.set_font('Arial', '', 11)
+                pdf.cell(pdf.get_string_width(encode_text(current_line)), 6, encode_text(current_line), ln=False)
+                current_line = ""
+            pdf.set_font('Arial', 'B', 11)
+            pdf.cell(pdf.get_string_width(encode_text(bold_text)), 6, encode_text(bold_text), ln=False)
+
+            # 🔽 Check if next part starts with ':' and handle it
+            if i + 1 < len(parts) and parts[i + 1].startswith(':'):
+                pdf.set_font('Arial', '', 11)
+                pdf.cell(pdf.get_string_width(':'), 6, ':', ln=True)  # print colon and break
+                parts[i + 1] = parts[i + 1][1:].lstrip()  # remove colon from next part
+
+        # Italic
+        elif part.startswith('*') and part.endswith('*'):
+            italic_text = part[1:-1]
+            if current_line:
+                pdf.set_font('Arial', '', 11)
+                pdf.cell(pdf.get_string_width(encode_text(current_line)), 6, encode_text(current_line), ln=False)
+                current_line = ""
+            pdf.set_font('Arial', 'I', 11)
+            pdf.cell(pdf.get_string_width(encode_text(italic_text)), 6, encode_text(italic_text), ln=False)
+
+        else:
+            current_line += part
+
+        i += 1
+
+    # Final unformatted text output
+    if current_line:
+        pdf.set_font('Arial', '', 11)
+        if pdf.get_string_width(encode_text(current_line)) > line_width:
+            if indent:
+                pdf.multi_cell(line_width, 6, encode_text(current_line))
+            else:
+                pdf.multi_cell(0, 6, encode_text(current_line))
+        else:
+            pdf.cell(0, 6, encode_text(current_line), ln=True)
+    else:
+        pdf.ln(6)
+
 
 # API Routes
 @app.get("/")
