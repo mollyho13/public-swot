@@ -329,7 +329,7 @@ const App = () => {
         {activeTab === 'questions' && (
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">📋 Générateur de Questions</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2"> Générateur de Questions</h2>
               <p className="text-gray-600">Créez des questionnaires personnalisés de 50-100 questions diagnostiques basés sur le profil de votre entreprise.</p>
             </div>
 
@@ -438,7 +438,7 @@ const App = () => {
         {activeTab === 'swot' && (
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">📊 Analyse SWOT</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Analyse SWOT</h2>
               <p className="text-gray-600">Générez une analyse SWOT stratégique complète à partir des réponses détaillées de votre entreprise. Vous pouvez uploader plusieurs fichiers PDF.</p>
             </div>
 
@@ -664,8 +664,8 @@ const App = () => {
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-8 mt-16">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <p className="text-lg font-semibold mb-2">🚀 AI Business Analysis Platform</p>
-          <p className="text-gray-400">Propulsé par OpenAI GPT-4o • Développé avec FastAPI & React</p>
+          <p className="text-lg font-semibold mb-2">AI Business Analysis Platform</p>
+          <p className="text-gray-400">Propulsé par OpenAI GPT-4o • Développé avec FastAPI & React • Créer par Molly Ho</p>
         </div>
       </footer>
     </div>
