@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, BarChart3, Download, Loader2, CheckCircle, AlertCircle, X, Target } from 'lucide-react';
 
-const API_BASE_URL = 'https://public-swot.onrender.com';
+const API_BASE_URL = 'http://0.0.0.0:8000';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('questions');
@@ -390,7 +390,7 @@ const App = () => {
                     Génération en cours...
                   </>
                 ) : (
-                  '🚀 Générer les Questions'
+                  'Générer les Questions'
                 )}
               </button>
             </form>
@@ -531,7 +531,7 @@ const App = () => {
                     Génération en cours...
                   </>
                 ) : (
-                  '📊 Générer l\'Analyse SWOT'
+                  'Générer l\'Analyse SWOT'
                 )}
               </button>
             </form>

@@ -11,6 +11,9 @@ import tempfile
 import os
 import uuid
 import io
+import markdown
+from weasyprint import HTML, CSS
+from weasyprint.text.fonts import FontConfiguration
 from typing import Optional, List
 
 app = FastAPI(title="AI Business Analysis API", version="1.0.0")
@@ -200,40 +203,53 @@ def generate_action_plan(form_data, detailed_qa, swot_analysis, api_key):
     business_info = "\n".join([f"{k}: {v}" for k, v in form_data.items() if pd.notna(v)])
 
     prompt = f"""
-Tu es un consultant expert en stratégie. Génère un **Plan d’Actions** au format PDF structuré écrite comme un livrable de cabinet de conseil (voir modèle ci-dessous).
+Tu es un consultant en stratégie senior en cabinet de conseil. Génère un **Plan d’Actions Structuré** au format texte destiné à une PME/ETI, dans un style clair, directement opérationnel et prêt à être mis en œuvre.
 
-faire ce qui suit:
+## OBJECTIF
+Convertir les éléments concrets de l’analyse SWOT en actions **priorisées, activables immédiatement**, adaptées **spécifiquement au contexte réel de l’entreprise** (taille, secteur, maturité…).
 
-1. **RECOMMANDATIONS D’ACTIONS** – 1 à 2 actions concrètes, courtes, claires et opérationnelles, sous forme de puces
-2. **ÉCHÉANCES** – Exprimée en trimestre et année (ex: T3 2025, T1 2026…)
-3. **RESPONSABLE** – Toujours écrire : “À remplir par le client”
-4. **PRIO.** – Niveau de priorité :
-   - 🔴 Priorité 1
-   - 🟡 Priorité 2
-   - ⚪️ Priorité 3
+## STRUCTURE À PRODUIRE POUR CHAQUE DOMAINE CI-DESSOUS :
+1. **RECOMMANDATIONS D’ACTIONS** :  
+   - 2 à 3 actions maximum par domaine  
+   - Toujours commencer par un **verbe d’action fort** (Ex : Définir, Mettre en place, Structurer, Optimiser, Digitaliser…)  
+   -  Donnez des exemples tels que les services existants qu'ils pourraient utiliser et nommez les concurrents réels sur leur marché.
+   - Chaque action doit être :
+     - **Spécifique** : faire référence à un problème ou un levier identifié dans {swot_analysis}  
+     - **Opérationnelle** : directement mise en œuvre par une PME/ETI sans dépendre d’acteurs externes ou d’approches trop générales  
+     - **Structurée** en deux puces (problème ciblé + réponse/action)
 
-faites ceci pour chacune de ces zones: 
-- Marché et stratégie
-- SI et digital
-- Organisation et management
-- finance et juridique
-- commercial et marketing
-- opérations
-- RSE et climat
-- Ressources humaines
+2. **ÉCHÉANCE** : Trimestre et année (ex. T3 2025)
 
-### CONTEXTE À UTILISER :
-- *Profil entreprise* : {business_info}
+3. **RESPONSABLE** : Toujours écrire : “À remplir par le client”
+
+4. **PRIORITÉ** : 
+   - Priorité 1 = action urgente / structurante
+   - Priorité 2 = action utile / court-moyen terme
+   - Priorité 3 = action de fond / moins critique
+
+## DOMAINES À TRAITER :
+- Marché et stratégie  
+- Systèmes d’information et digital  
+- Organisation et management  
+- Finance et juridique  
+- Commercial et marketing  
+- Opérations  
+- RSE et climat  
+- Ressources humaines  
+
+## CONTEXTE À UTILISER :
+- *Profil de l’entreprise* : {business_info}
 - *Analyse complète* : {detailed_qa}
-- *Analyse SWOT* : {swot_analysis}
 
-**OBJECTIF** :
-Traduire les éléments clés de l’analyse SWOT en un plan d’actions opérationnel, hiérarchisé par priorité, prêt à être déployé.
+## STANDARDS À RESPECTER :
+- Suivre **le format des exemples suivants** :
+  - Exemple :  
+    - Déployer un outil d’évaluation des AO basé sur un scoring structuré  
+    - Optimiser la sélection des opportunités et maximiser le taux de conversion  
+    - Échéance : T4 2025 | Responsable : À remplir par le client | Priorité : 1
 
- **CONSIGNES DE STYLE** :
-- Utilise toujours un **verbe d’action** fort au début (Ex : Mettre en place, Déployer, Structurer, Prioriser…)
-- Une ligne = une action claire (pas de blabla)
-- Chaque action doit pouvoir être **mise en œuvre facilement** dans un contexte PME/ETI
+- Pas de généralités : chaque action doit **résoudre un problème concret** ou **exploiter un levier clair**
+- Chaque ligne doit pouvoir être **assignée immédiatement à un responsable opérationnel**
 """
 
     try:
@@ -248,7 +264,203 @@ Traduire les éléments clés de l’analyse SWOT en un plan d’actions opérat
         raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
 def create_pdf(content, title="Document"):
-    """Create PDF from content"""
+    """Create beautifully formatted PDF from markdown using HTML/CSS"""
+    try:
+        # Convert markdown to HTML
+        md = markdown.Markdown(extensions=['tables', 'toc', 'codehilite'])
+        html_content = md.convert(content)
+        
+        # Create styled HTML document
+        html_template = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                @page {{
+                    margin: 2cm;
+                    @top-center {{
+                        content: "{title}";
+                        font-family: Arial, sans-serif;
+                        font-size: 10pt;
+                        color: #666;
+                    }}
+                    @bottom-center {{
+                        content: "Page " counter(page) " of " counter(pages);
+                        font-family: Arial, sans-serif;
+                        font-size: 10pt;
+                        color: #666;
+                    }}
+                }}
+                
+                body {{
+                    font-family: Arial, sans-serif;
+                    font-size: 11pt;
+                    line-height: 1.5;
+                    color: #333;
+                }}
+                
+                h1 {{
+                    color: #2c3e50;
+                    font-size: 18pt;
+                    margin-top: 0;
+                    margin-bottom: 16pt;
+                    text-align: center;
+                    border-bottom: 2px solid #3498db;
+                    padding-bottom: 8pt;
+                }}
+                
+                h2 {{
+                    color: #34495e;
+                    font-size: 14pt;
+                    margin-top: 20pt;
+                    margin-bottom: 10pt;
+                    border-left: 4px solid #3498db;
+                    padding-left: 10pt;
+                    background-color: #f8f9fa;
+                    padding: 8pt;
+                    border-radius: 4pt;
+                }}
+                
+                h3 {{
+                    color: #34495e;
+                    font-size: 12pt;
+                    margin-top: 16pt;
+                    margin-bottom: 8pt;
+                    border-left: 2px solid #95a5a6;
+                    padding-left: 8pt;
+                }}
+                
+                h4 {{
+                    color: #34495e;
+                    font-size: 11pt;
+                    margin-top: 12pt;
+                    margin-bottom: 6pt;
+                }}
+                
+                p {{
+                    margin-bottom: 8pt;
+                    text-align: justify;
+                }}
+                
+                strong {{
+                    color: #2c3e50;
+                    font-weight: bold;
+                }}
+                
+                em {{
+                    color: #7f8c8d;
+                    font-style: italic;
+                }}
+                
+                ul, ol {{
+                    margin-bottom: 12pt;
+                    padding-left: 20pt;
+                }}
+                
+                li {{
+                    margin-bottom: 4pt;
+                    line-height: 1.4;
+                }}
+                
+                .priority-high {{
+                    background-color: #ffebee;
+                    border-left: 4px solid #e74c3c;
+                    padding: 8pt;
+                    margin: 8pt 0;
+                    border-radius: 4pt;
+                }}
+                
+                .priority-medium {{
+                    background-color: #fff8e1;
+                    border-left: 4px solid #f39c12;
+                    padding: 8pt;
+                    margin: 8pt 0;
+                    border-radius: 4pt;
+                }}
+                
+                .priority-low {{
+                    background-color: #e8f5e8;
+                    border-left: 4px solid #27ae60;
+                    padding: 8pt;
+                    margin: 8pt 0;
+                    border-radius: 4pt;
+                }}
+                
+                .separator {{
+                    border-top: 1px solid #bdc3c7;
+                    margin: 16pt 0;
+                }}
+                
+                .action-item {{
+                    background-color: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 4pt;
+                    padding: 10pt;
+                    margin: 8pt 0;
+                }}
+                
+                .highlight {{
+                    background-color: #fff3cd;
+                    padding: 2pt 4pt;
+                    border-radius: 2pt;
+                }}
+                
+                code {{
+                    background-color: #f1f2f6;
+                    padding: 2pt 4pt;
+                    border-radius: 2pt;
+                    font-family: "Courier New", monospace;
+                    font-size: 10pt;
+                }}
+                
+                blockquote {{
+                    border-left: 3px solid #3498db;
+                    margin: 12pt 0;
+                    padding-left: 12pt;
+                    font-style: italic;
+                    background-color: #f8f9fa;
+                    padding: 8pt 8pt 8pt 20pt;
+                }}
+            </style>
+        </head>
+        <body>
+            <h1>{title}</h1>
+            {html_content}
+        </body>
+        </html>
+        """
+        
+        # Generate PDF from HTML
+        font_config = FontConfiguration()
+        html_doc = HTML(string=html_template)
+        
+        # Create temporary file for PDF
+        temp_pdf_path = os.path.join(TEMP_DIR, f"temp_advanced_{uuid.uuid4()}.pdf")
+        html_doc.write_pdf(temp_pdf_path, font_config=font_config)
+        
+        # Return a custom PDF object that works with your existing code
+        class AdvancedPDF:
+            def __init__(self, pdf_path):
+                self.pdf_path = pdf_path
+                
+            def output(self, output_path):
+                """Copy the generated PDF to the output path"""
+                import shutil
+                shutil.copy2(self.pdf_path, output_path)
+                # Clean up temp file
+                if os.path.exists(self.pdf_path):
+                    os.remove(self.pdf_path)
+        
+        return AdvancedPDF(temp_pdf_path)
+        
+    except Exception as e:
+        print(f"Advanced PDF creation failed: {e}")
+        # Fallback to basic PDF creation
+        return create_basic_pdf(content, title)
+
+def create_basic_pdf(content, title="Document"):
+    """Fallback basic PDF creation"""
     try:
         pdf = FPDF()
         pdf.set_auto_page_break(auto=True, margin=15)
@@ -256,7 +468,7 @@ def create_pdf(content, title="Document"):
         
         # Add title
         pdf.set_font('Arial', 'B', 16)
-        pdf.cell(0, 10, title, ln=True, align='C')
+        pdf.cell(0, 10, encode_text(title), ln=True, align='C')
         pdf.ln(10)
         
         # Add content
@@ -264,17 +476,20 @@ def create_pdf(content, title="Document"):
         
         lines = content.split('\n')
         for line in lines:
-            try:
-                encoded_line = line.encode('latin-1', 'replace').decode('latin-1')
-                pdf.multi_cell(0, 6, encoded_line)
-            except:
-                clean_line = ''.join(char for char in line if ord(char) < 256)
-                pdf.multi_cell(0, 6, clean_line)
+            encoded_line = encode_text(line)
+            pdf.multi_cell(0, 6, encoded_line)
             pdf.ln(2)
         
         return pdf
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF creation error: {str(e)}")
+
+def encode_text(text):
+    """Safely encode text for PDF"""
+    try:
+        return text.encode('latin-1', 'replace').decode('latin-1')
+    except:
+        return ''.join(char for char in text if ord(char) < 256)
 
 # API Routes
 @app.get("/")
